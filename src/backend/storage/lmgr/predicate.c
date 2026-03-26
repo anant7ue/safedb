@@ -2429,7 +2429,15 @@ PredicateLockAcquire(const PREDICATELOCKTARGETTAG *targettag)
 	LOCALPREDICATELOCK *locallock;
 
 	if (is_bcdb_worker)
-		rs_table_reserve(targettag);
+	{
+		/*
+		 * BCDB: Always record read-set tags for conflict_checkDT(). If SSI
+		 * predicate locks are disabled for this tx, return early after reserving.
+		 */
+		rs_table_reserveDT(targettag);
+		if (activeTx && !activeTx->pred_lock)
+			return;
+	}
 
 	/* Do we have the lock already, or a covering lock? */
 	if (PredicateLockExists(targettag))

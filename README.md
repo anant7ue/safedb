@@ -1,40 +1,41 @@
-# AriaBC
+# ProtectDB 
 
-This repository contains the source code of AriaBC, i.e., the Aria deterministic concurrency control implemented on PostgreSQL.
+This repository contains the source code of database, i.e., the deterministic concurrency control implemented on top of AriaBC implementation of PostgreSQL provided by authors of HarmonyBC, available at github.com/zllai/AriaBC .
+
+Please check details of changes in README_files_modified.txt
 
 ## Compile and install
 
 ```sh
-./configure
-make -j
+./configure --prefix=${POSTGRES_INSTALLDIR} --enable-debug --without-icu
+make   
 make install
 ```
 
-## Run a sample workload (single machine)
+## Setup database on a single machine
 
-1. Prepare the blockchain database file
-
-```sh
-initdb -D /tmp/ycsb
-```
-
-2. Launch the database engine
 
 ```sh
-postgres -D /tmp/ycsb
+initdb -D /tmp/safedir
 ```
 
-3. Create the database and initialize the state
+2. Add following lines to postgresql.conf:
 
 ```sh
-createdb ycsb
-psql -d ycsb < src/benchmark/samples/ycsb_setup
+   enable_merkle_index = on
+   merkle_update_detection = on
 ```
 
-4. Run the workload
+3. Launch the database engine
 
 ```sh
-psql -d ycsb < src/benchmark/samples/ycsb_tx_blocks
+postgres -D /tmp/safedir
 ```
 
-See src/benchmark/samples/ycsb_tx_blocks for more details on how to submit a block of transactions.
+4. Create the database, initialize YCSB and create merkle index
+
+```sh
+createdb safedb
+psql -d safedb < ycsb-bb-pgdump-12k.sql
+echo 'create index ycsb_merk_index ON usertable USING merkle(ycsb_key) WITH (partitions = 200, leaves_per_partition = 16);' | psql -d safedb
+```
